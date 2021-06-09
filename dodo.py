@@ -51,8 +51,8 @@ class BuildContext:
     def get_output_file(self, file):
         file = self.get_file(file)
         dir = self.get_output_dir(file)
-        file = dir / file.file.with_suffix('.o') 
-        return file
+        file = dir / Path(file.file.name)
+        return file.with_suffix(".o")
         
     def determine_deps(self, file):
         file = self.get_file(file)
@@ -75,9 +75,9 @@ class BuildContext:
         return action
     
     def compile_file(self, file):
-        file = self.get_file()
+        file = self.get_file(file)
         action = self.get_action(file)
-        return subprocess.run(action, env=self.env, capture_output=True)
+        return subprocess.run(action, env=self.env, capture_output=True).returncode == 0
     
 def task_determine_dependencies():
     """Determine dependencies for C/C++ build"""
@@ -103,7 +103,7 @@ main_sources = Path('src').glob("*.cpp")
 
 srcs = [BuildObject(f, cmd_args=['-DOTHER_FILE', '-DYES', '-DMAIN']) for f in (list(Path('.').glob("*.cpp")) + list(Path('.').glob('src/*.cpp')))]
 
-main_build = BuildContext("main", cmd_args=['-DMAIN'], objdir='obj/build/main')
+main_build = BuildContext("main", cmd_args=['-DMAIN'], objdir='obj/build/main', replicate_structure=True)
 main_build.sources += srcs
 
 def task_compile():
@@ -119,7 +119,7 @@ def task_compile():
         for file in ctxt.sources:
             yield {
                 'name'    : str(file),
-                'actions' : [ctxt.compile_file, [file]],
+                'actions' : [(ctxt.compile_file, [file])],
                 'file_dep': [str(file)],
                 'calc_dep': [f"determine_dependencies:{file}_{ctxt.name}"],
                 'targets' : [ctxt.get_output_file(file)]
