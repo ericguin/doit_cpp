@@ -106,6 +106,7 @@ class BuildContext:
         libs = f"-Wl,--start-group {' '.join(['-l' + lib for lib in self.libs]).strip()} -Wl,--end-group" if any(self.libs) else ""
         link_args = ' '.join([arg for arg in self.link_args]).strip()
         linker = self.get_linker()
+        Path(self.output).parent.mkdir(parents=True, exist_ok=True)
         action = f"{linker} -o {self.output} {objects} {libpath} {libs} {link_args}"
         print(action)
         return action

@@ -3,4 +3,4 @@ __pycache__
 *.o
 .vscode
 obj
-*.exe
+bin
