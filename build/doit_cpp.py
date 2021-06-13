@@ -3,6 +3,7 @@ import subprocess
 import re
 import platform
 import os
+from doit import get_var
 
 class BuildContext:
     Build_Contexts = {}
@@ -17,21 +18,21 @@ class BuildContext:
     def __init__(self, name, output=None, cmd_args=None, cpath=None, libs=None, libpath=None, sources=None, link_args=None,
                  cc=None, cxx=None, ar=None, objdir=None, replicate_structure=False, base_dir=None, env=None):
         self.name = name
-        self.output = output or name + BuildContext._get_output_suffix()
+        self.output = (output or name) + BuildContext._get_output_suffix()
         self.cmd_args = cmd_args or list()
         self.link_args = link_args or list()
         self.cpath = cpath or list()
         self.libs = libs or list()
         self.libpath = libpath or list()
         self.sources = sources or list()
-        self.cc = cc or "gcc"
-        self.cxx = cxx or "g++"
-        self.ar = ar or "ar"
+        self.env = env or os.environ.copy()
+        self.cc = cc or self.env.get("CC") or "gcc"
+        self.cxx = cxx or self.env.get("CXX") or "g++"
+        self.ar = ar or self.env.get("AR") or "ar"
         self.objdir = Path(str(objdir)) if objdir is not None else None
         self.replicate_structure = replicate_structure
         self.base_dir = base_dir or Path(".")
-        self.env = env or os.environ.copy()
-
+        
         BuildContext.Build_Contexts[self.name] = self
     
     def get_file(self, file):
@@ -85,7 +86,7 @@ class BuildContext:
         out_path.parent.mkdir(parents = True, exist_ok = True)
         c_paths = list(set(self.cpath + file.cpath))
         c_args = list(set(self.cmd_args + file.cmd_args + additional_args))
-        action = f"{compiler} -c -o  {out_path} {' '.join(c_args).strip()} {' '.join(['-I' + s for s in c_paths]).strip()} {file}"
+        action = f"{compiler} -c -o {out_path} {' '.join(c_args).strip()} {' '.join(['-I' + s for s in c_paths]).strip()} {file}"
         print(action)
         return action
     
@@ -145,8 +146,15 @@ def task_compile():
         'doc': 'builds file x'
     }
 
+    force = get_var("force", False)
+
     for ctxt in BuildContext.Build_Contexts.values():
         for file in ctxt.sources:
+            out_path = ctxt.get_output_file(file)
+            
+            if force:
+                out_path.unlink(missing_ok=True)
+
             yield {
                 'name'    : f"{file}@{ctxt.name}",
                 'actions' : [(ctxt.compile_file, [file])],
