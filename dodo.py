@@ -1,5 +1,6 @@
 # This is a test of DoIt as a CPP build environment
 # It is very beta...
+# Another comment, fighting SSH auth
 
 from build.doit_cpp import *
 from pathlib import Path
