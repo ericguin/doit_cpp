@@ -1,4 +1,5 @@
 # This is a test of DoIt as a CPP build environment
+# It is very beta...
 
 from build.doit_cpp import *
 from pathlib import Path
